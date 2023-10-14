@@ -18,6 +18,7 @@ try {
 	console.error(err.message);
 }
 const GENIUS_URL = "https://api.genius.com/";
+const LASTFM_URL = "http://ws.audioscrobbler.com/2.0/"
 
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -32,18 +33,31 @@ app.get("/", (req, res) => {
 });
 
 app.post("/", async (req, res) => {
+	const searchArtist = req.body["artist"];
+	const searchSong = req.body["song"];
+	
 	try {
-		// console.log(req.body);
-		let artist = req.body["artist"];
-		let song = req.body["song"];
-		res.render("index.ejs", {artist: artist, song: song});
+		// Genius API request
+		const geniusResult = await axios.get(`${GENIUS_URL}search?q=${searchArtist} ${searchSong}`, { headers: { Authorization: `Bearer ${config["geniusToken"]}` } });
+		const geniusData = geniusResult.data.response.hits[0].result;
+		const [fullTitle, artist, song] = [geniusData.full_title, geniusData.primary_artist.name, geniusData.title];
 
-		const result = await axios.get(`${GENIUS_URL}search?q=${artist} ${song}`, { headers: { Authorization: `Bearer ${config["geniusToken"]}` } });
+		// Last.fm API request
+		const lastfmResult = await axios.get(`${LASTFM_URL}?method=track.getInfo&artist=${artist}&track=${song}&api_key=${config["lastfmToken"]}&format=json`);
+		const lastfmData = lastfmResult.data.track;
+		const [listeners, playCount, summary] = [lastfmData.listeners, lastfmData.playcount, lastfmData.wiki.summary];
 
-		console.log(result.data.response.hits[0].result.id);
+		res.render("index.ejs", {
+			fullTitle: fullTitle,
+			artist: artist,
+			song: song,
+			listeners: listeners,
+			playCount: playCount,
+			summary: summary,
+		});
 	}
 	catch (error) {
-		console.log(error.response.data);
+		console.log(error);
 		res.status(500);
 	}
 });

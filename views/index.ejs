@@ -7,8 +7,12 @@
 </form>
 
 <% if (locals.artist) { %>
+	<p><%= fullTitle %></p>
 	<p><%= artist %></p>
 	<p><%= song %></p>
+	<p><%= listeners %></p>
+	<p><%= playCount %></p>
+	<p><%- summary %></p>
 <% } else { %>
 	<p>Input artist and song!</p>
 <% } %>
