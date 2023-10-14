@@ -37,18 +37,25 @@ app.post("/", async (req, res) => {
 	const searchSong = req.body["song"];
 	
 	try {
-		// Genius API request
-		const geniusResult = await axios.get(`${GENIUS_URL}search?q=${searchArtist} ${searchSong}`, { headers: { Authorization: `Bearer ${config["geniusToken"]}` } });
-		const geniusData = geniusResult.data.response.hits[0].result;
-		const [fullTitle, artist, song] = [geniusData.full_title, geniusData.primary_artist.name, geniusData.title];
+		// Last.fm API request (search song)
+		const lastfmSearchResult = await axios.get(`${LASTFM_URL}?method=track.search&artist=${searchArtist}&track=${searchSong}&api_key=${config["lastfmToken"]}&format=json`);
+		const lastfmSearchData = lastfmSearchResult.data.results.trackmatches.track[0]; 
+		const [artist, song] = [lastfmSearchData.artist, lastfmSearchData.name];
+		// console.log(artist, song);
 
-		// Last.fm API request
+		// Last.fm API request (get song info)
 		const lastfmResult = await axios.get(`${LASTFM_URL}?method=track.getInfo&artist=${artist}&track=${song}&api_key=${config["lastfmToken"]}&format=json`);
 		const lastfmData = lastfmResult.data.track;
-		const [listeners, playCount, summary] = [lastfmData.listeners, lastfmData.playcount, lastfmData.wiki.summary];
+		const [listeners, playCount, summary] = [lastfmData.listeners, lastfmData.playcount, lastfmData.hasOwnProperty('wiki')? lastfmData.wiki.summary: "No summary."];
+		// console.log(listeners, playCount, summary);
+		
+		// Genius API request
+		const geniusResult = await axios.get(`${GENIUS_URL}search?q=${artist} ${song}`, { headers: { Authorization: `Bearer ${config["geniusToken"]}` } });
+		const geniusData = geniusResult.data.response.hits[0].result;
+		const [headerImageURL, songImageURL] = [geniusData.header_image_url, geniusData.song_art_image_url];
+		// console.log(headerImageURL, songImageURL);
 
 		res.render("index.ejs", {
-			fullTitle: fullTitle,
 			artist: artist,
 			song: song,
 			listeners: listeners,
